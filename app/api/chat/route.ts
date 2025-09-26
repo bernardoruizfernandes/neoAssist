@@ -29,8 +29,8 @@ export async function POST(request: NextRequest) {
     const completion = await openai.chat.completions.create({
       model: 'gpt-4',
       messages: messages as any,
-      temperature: 0.7,
-      max_tokens: 1000,
+      temperature: 0.3,
+      max_tokens: 1200,
     })
 
     const responseContent = completion.choices[0]?.message?.content || 'Desculpe, não consegui gerar uma resposta.'
