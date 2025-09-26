@@ -2,10 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Send, User, Bot, Info, BarChart3 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { detectChartableContent, extractChartTitle } from '@/lib/chartDetection'
+import { detectChartableContent } from '@/lib/chartDetection'
 import { ChartContainer } from '@/components/charts/ChartContainer'
 
 interface ChartData {
@@ -22,6 +21,7 @@ interface Message {
   timestamp: Date
   chartable?: boolean
   chartData?: ChartData
+  originalQuery?: string // Para armazenar a pergunta original do usuário
 }
 
 export function ChatInterface() {
@@ -57,126 +57,13 @@ export function ChatInterface() {
     setIsLoading(true)
 
     try {
-      // Advanced Intent Classification System
-      let analysisData = null
+      // Sistema simplificado - sem dependência do Python
+      // Detecção de intent simplificada para gráficos
       const input = currentInput.toLowerCase()
-      
-      // Step 1: Intent Detection
-      const intentPatterns = {
-        descriptive_analysis: [
-          'como.*segmentado', 'como.*distribuído', 'como.*classificado',
-          'qual.*situação', 'como.*está', 'como.*encontra',
-          'mostre.*dados', 'analise.*atual', 'status.*carteira'
-        ],
-        specific_data: [
-          'quantos', 'quanto', 'qual.*total', 'número.*de',
-          'soma.*de', 'valor.*total', 'lista.*de'
-        ],
-        strategic_advice: [
-          'como.*cobrar', 'estratég', 'abordagem', 'recomenda',
-          'sugira', 'como.*proceder', 'próximos.*passos'
-        ],
-        priority_analysis: [
-          'priorit', 'urgent', 'importante', 'primeiro',
-          'ranking', 'ordem.*import'
-        ],
-        insights_recovery: [
-          'insight', 'recupera', 'potencial', 'estimativa',
-          'previsão', 'probabilidade', 'chance'
-        ]
-      }
-      
-      // Classify intent
-      let detectedIntent = 'summary'
-      let intentScore = 0
-      
-      for (const [intent, patterns] of Object.entries(intentPatterns)) {
-        const matches = patterns.filter(pattern => new RegExp(pattern).test(input)).length
-        if (matches > intentScore) {
-          intentScore = matches
-          detectedIntent = intent
-        }
-      }
-      
-      // Step 2: Determine if data analysis is needed
-      const needsAnalysis = intentScore > 0 || 
-          input.includes('analis') || input.includes('dados') ||
-          input.includes('client') || input.includes('carteira') ||
-          input.includes('risco') || input.includes('cobrança') ||
-          input.includes('faturamento') || input.includes('receita') ||
-          input.includes('data de pagamento') || input.includes('pagamento')
-      
-      // Step 3: Check for explicit chart requests
       const explicitChartRequest = input.includes('gráfico') || 
-          input.includes('gráfico') || input.includes('chart') || 
-          input.includes('visualiza') || input.includes('plota') || 
-          input.includes('mostra em gráfico') || input.includes('gera um gráfico') ||
-          input.includes('gere um gráfico') || input.includes('fazer um gráfico') ||
-          input.includes('criar um gráfico') || input.includes('desenha') ||
+          input.includes('chart') || input.includes('visualiza') || 
+          input.includes('plota') || input.includes('mostra em gráfico') ||
           /gera\s+.*gr[áa]fico/.test(input) || /faz\s+.*gr[áa]fico/.test(input)
-
-      if (needsAnalysis) {
-        // Map intent to analysis type
-        let analysisType = 'summary'
-        switch (detectedIntent) {
-          case 'priority_analysis':
-            analysisType = 'priority'
-            break
-          case 'strategic_advice':
-            analysisType = 'strategies'
-            break
-          case 'insights_recovery':
-            analysisType = 'insights'
-            break
-          case 'descriptive_analysis':
-          case 'specific_data':
-          default:
-            analysisType = 'summary'
-        }
-
-        try {
-          // Para perguntas específicas sobre contexto/dados, usar RAG
-          if (detectedIntent === 'descriptive_analysis' || 
-              input.includes('lavanderio') || 
-              input.includes('empresa') ||
-              input.includes('contexto') ||
-              input.includes('histórico') ||
-              input.includes('tendência')) {
-            
-            // Consulta RAG para contexto específico
-            const ragResponse = await fetch('/api/analyze', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                data: {}, 
-                analysisType: 'rag',
-                query: currentInput 
-              })
-            })
-            
-            if (ragResponse.ok) {
-              const ragResult = await ragResponse.json()
-              analysisData = ragResult.analysis
-            }
-          } else {
-            // Análise padrão para outros tipos
-                      const analysisResponse = await fetch('/api/analyze', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ data: {}, analysisType })
-                      })
-                      
-                      if (!analysisResponse.ok) {
-                        const errorResult = await analysisResponse.json()
-                        throw new Error(`Falha na análise de dados: ${errorResult.error || 'Erro desconhecido'}`)
-                      }
-            
-                      const analysisResult = await analysisResponse.json()
-                      analysisData = analysisResult.analysis          }
-        } catch (analysisError) {
-          console.error('Analysis error:', analysisError)
-        }
-      }
 
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -185,9 +72,7 @@ export function ChatInterface() {
         },
         body: JSON.stringify({
           message: currentInput,
-          history: messages,
-          analysisData: analysisData,
-          detectedIntent: detectedIntent
+          history: messages
         }),
       })
 
@@ -202,7 +87,8 @@ export function ChatInterface() {
         content: data.content,
         timestamp: new Date(),
         chartable: chartDetection.isChartable || explicitChartRequest,
-        chartData: undefined
+        chartData: undefined,
+        originalQuery: currentInput // Salvar a query original
       }
 
       setMessages(prev => [...prev, assistantMessage])
@@ -210,7 +96,7 @@ export function ChatInterface() {
       // Se foi um pedido explícito de gráfico, gerar automaticamente
       if (explicitChartRequest) {
         setTimeout(() => {
-          generateChart(assistantMessage.id, currentInput) // Usar a query original do usuário
+          generateChart(assistantMessage.id, currentInput)
         }, 500) // Pequeno delay para a mensagem aparecer primeiro
       }
     } catch (error) {
@@ -234,12 +120,16 @@ export function ChatInterface() {
     }
   }
 
-  const generateChart = async (messageId: string, messageContent: string) => {
+  const generateChart = async (messageId: string, originalQuery: string) => {
     setLoadingChart(messageId)
     
     try {
-      // Detectar novamente para obter o tipo de gráfico
-      const chartDetection = detectChartableContent(messageContent, '')
+      // Encontrar a mensagem do assistente para detectar o tipo de gráfico
+      const assistantMessage = messages.find(msg => msg.id === messageId)
+      const messageContent = assistantMessage?.content || ''
+      
+      // Detectar tipo de gráfico baseado na resposta E na query original
+      const chartDetection = detectChartableContent(messageContent, originalQuery)
       
       if (!chartDetection.chartType) {
         throw new Error('Tipo de gráfico não detectado')
@@ -250,7 +140,7 @@ export function ChatInterface() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chartType: chartDetection.chartType,
-          query: messageContent
+          query: originalQuery // Usar a query original do usuário
         })
       })
 
@@ -388,7 +278,7 @@ export function ChatInterface() {
                       {message.role === 'assistant' && message.chartable && !message.chartData && (
                         <div className="mt-4 pt-3 border-t border-neutral-200">
                           <Button
-                            onClick={() => generateChart(message.id, message.content)}
+                            onClick={() => generateChart(message.id, message.originalQuery || message.content)}
                             disabled={loadingChart === message.id}
                             variant="outline"
                             size="sm"

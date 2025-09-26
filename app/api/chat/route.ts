@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { openai, systemPrompt } from '@/lib/openai'
+import { 
+  clientes, 
+  metricas, 
+  contextoEmpresa, 
+  getResumoLavandeRio, 
+  getAnalysePorSetor, 
+  getClientesPrioritarios,
+  calcularFaturamentoPorMes 
+} from '@/lib/data'
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, history, analysisData, detectedIntent } = await request.json()
+    const { message, history } = await request.json()
+    let detectedIntent = 'descriptive_analysis' // Default
 
     if (!message) {
       return NextResponse.json(
@@ -12,8 +22,95 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // SISTEMA DE DADOS EMBARCADOS - SEMPRE DISPONÍVEL
+    let analysisDataToUse = null
+    
+    // Detectar intent baseado na mensagem
+    const messageText = message.toLowerCase()
+    
     let enhancedMessage = message
-    if (analysisData) {
+    
+    // Detectar qual tipo de dados fornecer baseado na pergunta
+    let shouldProvideData = false
+    let dataType = 'summary'
+    
+    // Perguntas que sempre precisam de dados
+    if (messageText.includes('client') || messageText.includes('carteira') || 
+        messageText.includes('dados') || messageText.includes('analis') ||
+        messageText.includes('situação') || messageText.includes('faturamento') ||
+        messageText.includes('receita') || messageText.includes('setor') ||
+        messageText.includes('inadimpl') || messageText.includes('priorid') ||
+        messageText.includes('estratég') || messageText.includes('cobrança') ||
+        messageText.includes('mês') || messageText.includes('mes') ||
+        messageText.includes('lavanderio') || messageText.includes('empresa')) {
+      shouldProvideData = true
+      
+      // Detectar tipo específico
+      if (messageText.includes('priorid') || messageText.includes('urgent')) {
+        dataType = 'priority'
+      } else if (messageText.includes('setor') || messageText.includes('segmenta')) {
+        dataType = 'sector'
+      } else if (messageText.includes('faturamento') && (messageText.includes('mês') || messageText.includes('mes'))) {
+        dataType = 'monthly_revenue'
+      } else if (messageText.includes('contexto') || messageText.includes('empresa') || messageText.includes('lavanderio')) {
+        dataType = 'company_context'
+      }
+    }
+    
+    // Montar dados baseado no tipo solicitado
+    if (shouldProvideData) {
+      switch (dataType) {
+        case 'priority':
+          analysisDataToUse = {
+            clientes_prioritarios: getClientesPrioritarios(),
+            resumo_geral: getResumoLavandeRio(),
+            contexto: "Análise de clientes prioritários para cobrança"
+          }
+          detectedIntent = 'priority_analysis'
+          break
+          
+        case 'sector':
+          analysisDataToUse = {
+            analise_por_setor: getAnalysePorSetor(),
+            resumo_geral: getResumoLavandeRio(),
+            contexto: "Análise de performance por setor de atividade"
+          }
+          detectedIntent = 'descriptive_analysis'
+          break
+          
+        case 'monthly_revenue':
+          analysisDataToUse = {
+            faturamento_mensal: calcularFaturamentoPorMes(),
+            metricas_mensais: metricas,
+            resumo_geral: getResumoLavandeRio(),
+            contexto: "Evolução do faturamento mês a mês"
+          }
+          detectedIntent = 'specific_data'
+          break
+          
+        case 'company_context':
+          analysisDataToUse = {
+            contexto_empresa: contextoEmpresa,
+            resumo_geral: getResumoLavandeRio(),
+            contexto: "Informações gerais sobre a LavandeRio"
+          }
+          detectedIntent = 'descriptive_analysis'
+          break
+          
+        default:
+          // Resumo completo para perguntas gerais
+          analysisDataToUse = {
+            resumo_geral: getResumoLavandeRio(),
+            contexto_empresa: contextoEmpresa,
+            clientes_sample: clientes.slice(0, 5), // Apenas 5 clientes para não sobrecarregar
+            metricas_recentes: metricas.slice(-3), // Últimas 3 métricas
+            contexto: "Visão geral da LavandeRio"
+          }
+          detectedIntent = detectedIntent || 'descriptive_analysis'
+      }
+    }
+    
+    if (analysisDataToUse) {
       // Dynamic templates based on detected intent
       const templates = {
         descriptive_analysis: {
@@ -45,11 +142,30 @@ export async function POST(request: NextRequest) {
       
       const template = templates[detectedIntent as keyof typeof templates] || templates.descriptive_analysis
       
-      // Regras fortes para não inventar números e usar cobertura de dados
-      const paymentCoverageHint = `\n\nREGRAS CRÍTICAS AO FALAR DE DATA DE PAGAMENTO:\n- Se a pergunta mencionar "data de pagamento" ou "faturamento por data de pagamento", VOCÊ DEVE usar analysisData.data_coverage.payment_revenue_by_month.\n- Filtre pelo ANO solicitado. Responda SOMENTE com os meses presentes em payment_revenue_by_month para esse ano.\n- NÃO invente meses ou valores ausentes. Se algum mês não existir, não preencha.\n- Se não houver nenhum mês para o período pedido, diga claramente: "Não há registros de pagamento no período solicitado".\n- NÃO afirme que os dados são futuros se houver meses disponíveis no mapa.\n`
+      const directive = `
 
-      const directive = `\n\n🔥 DADOS REAIS ANEXADOS - USE OBRIGATORIAMENTE 🔥\n\n⚡ NÍVEL DE RESPOSTA: ${template.level}\n\n🎯 INSTRUÇÃO ESPECÍFICA: ${template.instruction}\n\n🧠 PROCESSO DE PENSAMENTO: ${template.chainOfThought}\n${paymentCoverageHint}\n📊 IMPORTANTE SOBRE GRÁFICOS: Se a pergunta solicitar gráficos, visualizações ou dados que podem ser visualizados (como "quantidade por setor", "distribuição", "evolução temporal"), SEMPRE termine sua resposta sugerindo: "💡 Esta análise pode ser visualizada em gráfico - clique no botão 'Gerar Gráfico' que aparecerá abaixo da resposta!"\n\n📊 DADOS DE ANÁLISE:\n`
-      enhancedMessage = `${message}${directive}${JSON.stringify(analysisData, null, 2)}\n\n✅ Use o processo de pensamento acima e analise os dados para responder`
+🔥 DADOS REAIS DA LAVANDERIO - USE OBRIGATORIAMENTE 🔥
+
+⚡ NÍVEL DE RESPOSTA: ${template.level}
+
+🎯 INSTRUÇÃO ESPECÍFICA: ${template.instruction}
+
+🧠 PROCESSO DE PENSAMENTO: ${template.chainOfThought}
+
+📊 IMPORTANTE SOBRE GRÁFICOS: Se a resposta contém dados numéricos que podem ser visualizados (como faturamento mensal, distribuição por setor, rankings), SEMPRE termine sugerindo: "💡 Esta análise pode ser visualizada em gráfico - clique no botão 'Gerar Gráfico' que aparecerá abaixo da resposta!"
+
+⚠️ IMPORTANTE: Estes são os ÚNICOS dados disponíveis sobre a LavandeRio. Se você não encontrar informação específica solicitada nos dados abaixo, responda: "Desculpe, este é um produto em desenvolvimento e não possuo essa informação específica. Posso ajudar com: análise de clientes, faturamento mensal, performance por setor, clientes prioritários para cobrança, ou contexto geral da empresa."
+
+📊 DADOS DISPONÍVEIS DA LAVANDERIO:
+`
+      enhancedMessage = `${message}${directive}${JSON.stringify(analysisDataToUse, null, 2)}
+
+✅ Use SOMENTE os dados acima para responder. Se a informação não estiver disponível, use a mensagem de limitação indicada.`
+    } else {
+      // Para perguntas que não precisam de dados, informar limitações
+      enhancedMessage = `${message}
+
+INSTRUÇÃO ESPECIAL: Esta pergunta parece não necessitar dos dados específicos da LavandeRio. Se você não conseguir responder adequadamente, informe que é um produto em desenvolvimento com foco em análise financeira da LavandeRio e sugira perguntas que pode responder: "Como está a situação da LavandeRio?", "Quais clientes precisam de atenção prioritária?", "Faturamento mês a mês", etc.`
     }
 
     const messages = [

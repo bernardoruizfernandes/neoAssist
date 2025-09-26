@@ -32,7 +32,12 @@ export function detectChartableContent(content: string, userQuery: string): Char
     /n[úu]mero de pagamentos.*data/,
     /data de pagamento/,
     /pago.*por m[eê]s/,
-    /faturamento.*por m[eê]s/
+    /faturamento.*por m[eê]s/,
+    /faturamento.*mensal/,
+    /receita.*mensal/,
+    /faturamento.*em 202[0-9]/,
+    /receita.*em 202[0-9]/,
+    /r\$.*\d+.*r\$.*\d+/  // Múltiplos valores monetários (indica série temporal)
   ]
   
   // Padrões que indicam distribuições (Pie Charts)
@@ -140,24 +145,3 @@ export function detectChartableContent(content: string, userQuery: string): Char
   }
 }
 
-export function extractChartTitle(content: string, userQuery: string): string {
-  // Extrair título mais específico baseado no conteúdo
-  const contentLines = content.split('\n').filter(line => line.trim().length > 0)
-  
-  // Procurar por títulos ou headers
-  for (const line of contentLines) {
-    if (line.includes(':') && line.length < 80) {
-      const title = line.split(':')[0].trim()
-      if (title.length > 10 && title.length < 50) {
-        return title
-      }
-    }
-  }
-  
-  // Usar a query como fallback
-  if (userQuery.length < 60) {
-    return userQuery.charAt(0).toUpperCase() + userQuery.slice(1)
-  }
-  
-  return 'Análise de Dados'
-}
