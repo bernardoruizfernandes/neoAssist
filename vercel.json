@@ -6,11 +6,5 @@
     "api/analyze_python.py": {
       "runtime": "python3.11"
     }
-  },
-  "builds": [
-    {
-      "src": "python/**/*.py",
-      "use": "@vercel/python"
-    }
-  ]
+  }
 }
