@@ -6,24 +6,22 @@ import sys
 import os
 from datetime import datetime
 
-def load_datasets():
+def load_datasets(data_dir):
     """Carrega todos os datasets disponíveis"""
     try:
-        base_path = os.path.dirname(os.path.abspath(__file__))
-        
         # Carregar datasets
-        clientes_df = pd.read_csv(os.path.join(base_path, 'data', 'clientes_lavanderio.csv'))
-        metricas_df = pd.read_csv(os.path.join(base_path, 'data', 'metricas_lavanderio.csv'))
-        transacoes_df = pd.read_csv(os.path.join(base_path, 'data', 'transacoes_financeiras.csv'))
+        clientes_df = pd.read_csv(os.path.join(data_dir, 'clientes_lavanderio.csv'))
+        metricas_df = pd.read_csv(os.path.join(data_dir, 'metricas_lavanderio.csv'))
+        transacoes_df = pd.read_csv(os.path.join(data_dir, 'transacoes_financeiras.csv'))
         
         return clientes_df, metricas_df, transacoes_df
     except Exception as e:
         print(f"Erro ao carregar datasets: {str(e)}", file=sys.stderr)
         return None, None, None
 
-def generate_temporal_chart(chart_type, query=""):
+def generate_temporal_chart(chart_type, query="", data_dir="."):
     """Gera dados para gráficos temporais (line/area)"""
-    clientes_df, metricas_df, transacoes_df = load_datasets()
+    clientes_df, metricas_df, transacoes_df = load_datasets(data_dir)
     
     if metricas_df is None:
         return None
@@ -179,9 +177,9 @@ def generate_temporal_chart(chart_type, query=""):
         'description': description
     }
 
-def generate_distribution_chart(query=""):
+def generate_distribution_chart(query="", data_dir="."):
     """Gera dados para gráficos de distribuição (pie)"""
-    clientes_df, metricas_df, transacoes_df = load_datasets()
+    clientes_df, metricas_df, transacoes_df = load_datasets(data_dir)
     
     if clientes_df is None:
         return None
@@ -326,9 +324,9 @@ def generate_distribution_chart(query=""):
             'description': 'Faturamento total por setor de atividade'
         }
 
-def generate_ranking_chart(query=""):
+def generate_ranking_chart(query="", data_dir="."):
     """Gera dados para gráficos de ranking (bar)"""
-    clientes_df, metricas_df, transacoes_df = load_datasets()
+    clientes_df, metricas_df, transacoes_df = load_datasets(data_dir)
     
     if clientes_df is None:
         return None
@@ -418,15 +416,15 @@ def generate_ranking_chart(query=""):
             'description': 'Ranking dos principais clientes da LavandeRio'
         }
 
-def generate_chart_data(chart_type, query=""):
+def generate_chart_data(chart_type, query="", data_dir="."):
     """Função principal para gerar dados do gráfico"""
     try:
         if chart_type in ['line', 'area']:
-            return generate_temporal_chart(chart_type, query)
+            return generate_temporal_chart(chart_type, query, data_dir=data_dir)
         elif chart_type == 'pie':
-            return generate_distribution_chart(query)
+            return generate_distribution_chart(query, data_dir=data_dir)
         elif chart_type == 'bar':
-            return generate_ranking_chart(query)
+            return generate_ranking_chart(query, data_dir=data_dir)
         else:
             return None
     except Exception as e:

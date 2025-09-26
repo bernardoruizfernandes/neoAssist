@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 
 
 # Ensure we can import from the local python/ directory
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.getcwd()  # Use getcwd(), which is the project root in Vercel
 PYTHON_DIR = os.path.join(PROJECT_ROOT, "python")
 if PYTHON_DIR not in sys.path:
     sys.path.append(PYTHON_DIR)
@@ -26,8 +26,8 @@ app = FastAPI()
 
 
 def _get_data_path() -> str:
-    # Data file packaged in the repo
-    return os.path.join(PROJECT_ROOT, "python", "data", "sample_clients.csv")
+    # Return the path to the data *directory*
+    return os.path.join(PROJECT_ROOT, "python", "data")
 
 
 @app.get("/")
