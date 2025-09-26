@@ -1,0 +1,13 @@
+{
+  "functions": {
+    "app/api/analyze/route.ts": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "builds": [
+    {
+      "src": "python/**/*.py",
+      "use": "@vercel/python"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+cliente_id,nome_empresa,valor_devido,dias_atraso,historico_pagamento,setor,porte,score_credito,canal_preferido
+001,Comercial Silva Ltda,5250.00,32,regular,varejo,pequeno,650,whatsapp
+002,Indústria Beta SA,15750.00,65,mal_pagador,industria,medio,420,email
+003,Tech Solutions Corp,3200.00,15,bom_pagador,tecnologia,pequeno,780,whatsapp
+004,Construtora Alfa,45000.00,90,mal_pagador,construcao,grande,380,telefone
+005,Mercado Central,8900.00,22,regular,varejo,medio,590,sms
+006,Logística Express,12000.00,45,regular,logistica,medio,550,email
+007,Farmácia Saúde,2100.00,8,bom_pagador,saude,pequeno,720,whatsapp
+008,Auto Peças Motor,6700.00,55,mal_pagador,autopecas,pequeno,450,telefone
+009,Consultoria Prime,9500.00,18,bom_pagador,servicos,medio,690,email
+010,Padaria Pão Quente,1500.00,40,regular,alimentacao,pequeno,520,whatsapp
