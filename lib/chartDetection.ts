@@ -20,14 +20,19 @@ export function detectChartableContent(content: string, userQuery: string): Char
     /queda/,
     /varia[çc][aã]o/,
     /janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro/,
-    /2023|2024/,
+    /2018|2019|2020|2021|2022|2023|2024/,
     /trimestre|semestre|anual/,
     /duas linhas/,
     /múltiplas linhas/,
     /faturamento.*inadimpl/,
     /inadimpl.*faturamento/,
     /receita.*inadimpl/,
-    /inadimpl.*receita/
+    /inadimpl.*receita/,
+    /pagamentos.*data de vencimento/,
+    /n[úu]mero de pagamentos.*data/,
+    /data de pagamento/,
+    /pago.*por m[eê]s/,
+    /faturamento.*por m[eê]s/
   ]
   
   // Padrões que indicam distribuições (Pie Charts)
@@ -91,7 +96,7 @@ export function detectChartableContent(content: string, userQuery: string): Char
   ).length
   
   const numericalScore = numericalPatterns.filter(pattern => 
-    pattern.test(normalizedContent)
+    pattern.test(normalizedContent) || pattern.test(normalizedQuery)
   ).length
   
   // Lógica de decisão para tipo de gráfico

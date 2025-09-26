@@ -34,9 +34,67 @@ def generate_temporal_chart(chart_type, query=""):
                    ('duas linhas' in query.lower()) or \
                    (' e ' in query.lower() and ('receita' in query.lower() or 'faturamento' in query.lower()))
     
+    # Verificar se a query menciona um ano específico
+    import re
+    year_match = re.search(r'20\d{2}', query)
+    requested_year = year_match.group() if year_match else None
+    
+    # Verificar se temos dados para o ano solicitado
+    available_years = set()
+    for _, row in metricas_df.iterrows():
+        year = row['mes_ano'].split('-')[0]
+        available_years.add(year)
+    
+    if requested_year and requested_year not in available_years:
+        return {
+            'type': chart_type,
+            'data': [],
+            'title': f'Dados não disponíveis para {requested_year}',
+            'description': f'Dados disponíveis apenas para: {", ".join(sorted(available_years))}',
+            'error': True
+        }
+    
     # Dados de evolução mensal
     chart_data = []
+
+    # Caso especial: faturamento por data de pagamento
+    if ('faturamento' in query.lower() or 'receita' in query.lower()) and 'data de pagamento' in query.lower():
+        if transacoes_df is None:
+            return None
+        import re
+        year_match = re.search(r'20\d{2}', query)
+        requested_year = year_match.group() if year_match else None
+        transacoes_df['data_pagamento'] = pd.to_datetime(transacoes_df['data_pagamento'], errors='coerce')
+        pagos = transacoes_df.dropna(subset=['data_pagamento']).copy()
+        if requested_year:
+            pagos = pagos[pagos['data_pagamento'].dt.year.astype(str) == requested_year]
+        # Agrupar por mês de pagamento e somar valor_pago
+        faturamento_por_mes = pagos.groupby(pagos['data_pagamento'].dt.to_period('M')).agg({
+            'valor_pago': 'sum'
+        }).reset_index()
+        faturamento_por_mes['mes'] = faturamento_por_mes['data_pagamento'].dt.strftime('%Y-%m')
+        # Ordenar e formatar nome amigável
+        nome_mes = {
+            '01': 'Jan', '02': 'Fev', '03': 'Mar', '04': 'Abr', '05': 'Mai', '06': 'Jun',
+            '07': 'Jul', '08': 'Ago', '09': 'Set', '10': 'Out', '11': 'Nov', '12': 'Dez'
+        }
+        for _, r in faturamento_por_mes.sort_values('mes').iterrows():
+            ano, mes = r['mes'].split('-')
+            chart_data.append({'name': f"{nome_mes[mes]} {ano}", 'value': float(r['valor_pago'])})
+        title = f"Faturamento por Data de Pagamento {requested_year if requested_year else ''}"
+        description = "Soma do valor pago por mês com base na data de pagamento"
+        return {
+            'type': chart_type,
+            'data': chart_data,
+            'title': title,
+            'description': description
+        }
+
     for _, row in metricas_df.iterrows():
+        # Filtrar por ano se especificado
+        if requested_year and not row['mes_ano'].startswith(requested_year):
+            continue
+            
         mes_nome = {
             '2023-10': 'Out 2023',
             '2023-11': 'Nov 2023', 
@@ -51,44 +109,68 @@ def generate_temporal_chart(chart_type, query=""):
                 'Faturamento': float(row['receita_total']),
                 'Taxa_Inadimplencia': float(row['taxa_inadimplencia'])
             })
-            title = 'Evolução do Faturamento e Taxa de Inadimplência'
-            description = 'Comparação mensal entre faturamento (R$) e taxa de inadimplência (%)'
+            title = f'Evolução do Faturamento e Taxa de Inadimplência {requested_year if requested_year else ""}'
+            description = f'Comparação mensal entre faturamento (R$) e taxa de inadimplência (%) {requested_year if requested_year else ""}'
         elif 'receita' in query.lower() or 'faturamento' in query.lower():
             chart_data.append({
                 'name': mes_nome,
                 'value': float(row['receita_total'])
             })
-            title = 'Evolução da Receita Total'
-            description = 'Receita mensal da LavandeRio ao longo do tempo'
+            title = f'Evolução da Receita Total {requested_year if requested_year else ""}'
+            description = f'Receita mensal da LavandeRio {requested_year if requested_year else "ao longo do tempo"}'
+        elif 'quantidade de pagamentos' in query.lower() and 'data de vencimento' in query.lower():
+            if transacoes_df is None:
+                return None
+            
+            # Converter data_vencimento para datetime
+            transacoes_df['data_vencimento'] = pd.to_datetime(transacoes_df['data_vencimento'])
+            
+            # Agrupar por data de vencimento e contar pagamentos
+            pagamentos_por_data = transacoes_df.groupby(transacoes_df['data_vencimento'].dt.strftime('%d/%m/%Y')).size().reset_index(name='count')
+            pagamentos_por_data.columns = ['name', 'value']
+            
+            # Garantir ordenação temporal
+            pagamentos_por_data['sort_key'] = pd.to_datetime(pagamentos_por_data['name'], format='%d/%m/%Y')
+            pagamentos_por_data = pagamentos_por_data.sort_values(by='sort_key').drop(columns='sort_key')
+            
+            chart_data = pagamentos_por_data.to_dict(orient='records')
+            title = 'Quantidade de Pagamentos por Data de Vencimento'
+            description = 'Número de pagamentos agrupados por sua data de vencimento'
+            return {
+                'type': chart_type,
+                'data': chart_data,
+                'title': title,
+                'description': description
+            }
         elif 'inadimpl' in query.lower():
             chart_data.append({
                 'name': mes_nome,
                 'value': float(row['taxa_inadimplencia'])
             })
-            title = 'Evolução da Taxa de Inadimplência'
-            description = 'Taxa de inadimplência mensal (%)'
+            title = f'Evolução da Taxa de Inadimplência {requested_year if requested_year else ""}'
+            description = f'Taxa de inadimplência mensal (%) {requested_year if requested_year else ""}'
         elif 'churn' in query.lower():
             chart_data.append({
                 'name': mes_nome,
                 'value': float(row['churn_rate'])
             })
-            title = 'Evolução do Churn Rate'
-            description = 'Taxa de cancelamento mensal (%)'
+            title = f'Evolução do Churn Rate {requested_year if requested_year else ""}'
+            description = f'Taxa de cancelamento mensal (%) {requested_year if requested_year else ""}'
         elif 'ticket' in query.lower():
             chart_data.append({
                 'name': mes_nome,
                 'value': float(row['ticket_medio'])
             })
-            title = 'Evolução do Ticket Médio'
-            description = 'Ticket médio mensal'
+            title = f'Evolução do Ticket Médio {requested_year if requested_year else ""}'
+            description = f'Ticket médio mensal {requested_year if requested_year else ""}'
         else:
             # Default para receita
             chart_data.append({
                 'name': mes_nome,
                 'value': float(row['receita_total'])
             })
-            title = 'Evolução da Receita Total'
-            description = 'Receita mensal da LavandeRio'
+            title = f'Evolução da Receita Total {requested_year if requested_year else ""}'
+            description = f'Receita mensal da LavandeRio {requested_year if requested_year else ""}'
     
     return {
         'type': chart_type,

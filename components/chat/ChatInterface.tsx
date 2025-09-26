@@ -102,7 +102,9 @@ export function ChatInterface() {
       const needsAnalysis = intentScore > 0 || 
           input.includes('analis') || input.includes('dados') ||
           input.includes('client') || input.includes('carteira') ||
-          input.includes('risco') || input.includes('cobrança')
+          input.includes('risco') || input.includes('cobrança') ||
+          input.includes('faturamento') || input.includes('receita') ||
+          input.includes('data de pagamento') || input.includes('pagamento')
       
       // Step 3: Check for explicit chart requests
       const explicitChartRequest = input.includes('gráfico') || 
@@ -328,10 +330,10 @@ export function ChatInterface() {
                 <div className="text-sm font-medium text-neutral-700">Quais clientes precisam de atenção prioritária?</div>
               </button>
               <button
-                onClick={() => setInput('Gera um gráfico de quantidade de empresas por setor')}
+                onClick={() => setInput('Faturamento gerado mês a mês no ano de 2024')}
                 className="p-4 text-left border border-neutral-200 rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-all duration-200"
               >
-                <div className="text-sm font-medium text-neutral-700">Gera um gráfico de quantidade de empresas por setor</div>
+                <div className="text-sm font-medium text-neutral-700">Faturamento gerado mês a mês no ano de 2024</div>
               </button>
             </div>
           </div>

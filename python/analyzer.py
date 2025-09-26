@@ -81,6 +81,36 @@ class CollectionAnalyzer:
         
         # Últimas métricas disponíveis
         latest_metrics = self.metricas_df.iloc[-1] if len(self.metricas_df) > 0 else None
+
+        # Cobertura de dados (para evitar "inventar números")
+        try:
+            available_metric_months = self.metricas_df['mes_ano'].astype(str).tolist()
+        except Exception:
+            available_metric_months = []
+
+        try:
+            transacoes_copy = self.transacoes_df.copy()
+            transacoes_copy['data_pagamento'] = pd.to_datetime(transacoes_copy['data_pagamento'], errors='coerce')
+            available_payment_months = (
+                transacoes_copy.dropna(subset=['data_pagamento'])['data_pagamento']
+                .dt.strftime('%Y-%m')
+                .sort_values()
+                .unique()
+                .tolist()
+            )
+        except Exception:
+            available_payment_months = []
+
+        # Faturamento por data de pagamento (por mês)
+        try:
+            pagamentos_validos = transacoes_copy.dropna(subset=['data_pagamento']).copy()
+            pagamentos_validos['ano_mes'] = pagamentos_validos['data_pagamento'].dt.strftime('%Y-%m')
+            payment_revenue_by_month_series = pagamentos_validos.groupby('ano_mes')['valor_pago'].sum()
+            payment_revenue_by_month = {
+                k: float(v) for k, v in payment_revenue_by_month_series.to_dict().items()
+            }
+        except Exception:
+            payment_revenue_by_month = {}
         
         return {
             'total_clients': int(total_clients),
@@ -100,6 +130,11 @@ class CollectionAnalyzer:
                 'receita_total': float(latest_metrics['receita_total']) if latest_metrics is not None else 0,
                 'churn_rate': float(latest_metrics['churn_rate']) if latest_metrics is not None else 0,
                 'margem_bruta': float(latest_metrics['margem_bruta']) if latest_metrics is not None else 0
+            },
+            'data_coverage': {
+                'metrics_months': available_metric_months,
+                'payment_months': available_payment_months,
+                'payment_revenue_by_month': payment_revenue_by_month
             },
             'analysis_timestamp': datetime.now().isoformat(),
             'empresa': 'LavandeRio - Soluções em Lavanderia Especializada'

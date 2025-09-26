@@ -45,7 +45,10 @@ export async function POST(request: NextRequest) {
       
       const template = templates[detectedIntent as keyof typeof templates] || templates.descriptive_analysis
       
-      const directive = `\n\n🔥 DADOS REAIS ANEXADOS - USE OBRIGATORIAMENTE 🔥\n\n⚡ NÍVEL DE RESPOSTA: ${template.level}\n\n🎯 INSTRUÇÃO ESPECÍFICA: ${template.instruction}\n\n🧠 PROCESSO DE PENSAMENTO: ${template.chainOfThought}\n\n📊 IMPORTANTE SOBRE GRÁFICOS: Se a pergunta solicitar gráficos, visualizações ou dados que podem ser visualizados (como "quantidade por setor", "distribuição", "evolução temporal"), SEMPRE termine sua resposta sugerindo: "💡 Esta análise pode ser visualizada em gráfico - clique no botão 'Gerar Gráfico' que aparecerá abaixo da resposta!"\n\n📊 DADOS DE ANÁLISE:\n`
+      // Regras fortes para não inventar números e usar cobertura de dados
+      const paymentCoverageHint = `\n\nREGRAS CRÍTICAS AO FALAR DE DATA DE PAGAMENTO:\n- Se a pergunta mencionar "data de pagamento" ou "faturamento por data de pagamento", VOCÊ DEVE usar analysisData.data_coverage.payment_revenue_by_month.\n- Filtre pelo ANO solicitado. Responda SOMENTE com os meses presentes em payment_revenue_by_month para esse ano.\n- NÃO invente meses ou valores ausentes. Se algum mês não existir, não preencha.\n- Se não houver nenhum mês para o período pedido, diga claramente: "Não há registros de pagamento no período solicitado".\n- NÃO afirme que os dados são futuros se houver meses disponíveis no mapa.\n`
+
+      const directive = `\n\n🔥 DADOS REAIS ANEXADOS - USE OBRIGATORIAMENTE 🔥\n\n⚡ NÍVEL DE RESPOSTA: ${template.level}\n\n🎯 INSTRUÇÃO ESPECÍFICA: ${template.instruction}\n\n🧠 PROCESSO DE PENSAMENTO: ${template.chainOfThought}\n${paymentCoverageHint}\n📊 IMPORTANTE SOBRE GRÁFICOS: Se a pergunta solicitar gráficos, visualizações ou dados que podem ser visualizados (como "quantidade por setor", "distribuição", "evolução temporal"), SEMPRE termine sua resposta sugerindo: "💡 Esta análise pode ser visualizada em gráfico - clique no botão 'Gerar Gráfico' que aparecerá abaixo da resposta!"\n\n📊 DADOS DE ANÁLISE:\n`
       enhancedMessage = `${message}${directive}${JSON.stringify(analysisData, null, 2)}\n\n✅ Use o processo de pensamento acima e analise os dados para responder`
     }
 
