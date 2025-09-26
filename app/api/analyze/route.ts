@@ -5,11 +5,19 @@ const isVercel = !!process.env.VERCEL
 
 export async function POST(request: NextRequest) {
   try {
-    const { data, analysisType } = await request.json()
+    const { data, analysisType, query } = await request.json()
 
     if (!analysisType) {
       return NextResponse.json(
         { error: 'analysisType is required' },
+        { status: 400 }
+      )
+    }
+
+    // Validar se query é obrigatória para RAG
+    if (analysisType === 'rag' && !query) {
+      return NextResponse.json(
+        { error: 'query is required for RAG analysis' },
         { status: 400 }
       )
     }
@@ -19,7 +27,7 @@ export async function POST(request: NextRequest) {
       const res = await fetch(PYTHON_FUNCTION_PATH, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ analysisType, data })
+        body: JSON.stringify({ analysisType, data, query })
       })
 
       const json = await res.json()
@@ -33,8 +41,13 @@ export async function POST(request: NextRequest) {
     const execAsync = promisify(exec)
 
     const pythonScriptPath = path.join(process.cwd(), 'python', 'analyzer.py')
-    const dataPath = path.join(process.cwd(), 'python', 'data', 'sample_clients.csv')
-    const command = `python3 ${pythonScriptPath} --type ${analysisType} --data ${dataPath}`
+    const dataPath = path.join(process.cwd(), 'python', 'data', 'clientes_lavanderio.csv')
+    
+    // Construir comando baseado no tipo de análise
+    let command = `python3 ${pythonScriptPath} --type ${analysisType} --data ${dataPath}`
+    if (analysisType === 'rag' && query) {
+      command += ` --query "${query.replace(/"/g, '\\"')}"`
+    }
 
     const { stdout, stderr } = await execAsync(command)
     if (stderr) {
@@ -65,7 +78,7 @@ export async function GET() {
     const path = await import('path')
     const execAsync = promisify(exec)
 
-    const dataPath = path.join(process.cwd(), 'python', 'data', 'sample_clients.csv')
+    const dataPath = path.join(process.cwd(), 'python', 'data', 'clientes_lavanderio.csv')
     const command = `python3 ${path.join(process.cwd(), 'python', 'analyzer.py')} --type summary --data ${dataPath}`
 
     const { stdout } = await execAsync(command)

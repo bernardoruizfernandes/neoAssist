@@ -53,13 +53,18 @@ export function DataInsights() {
 
   if (error) {
     return (
-      <Card className="glass">
+      <Card className="bg-white/80 backdrop-blur-sm border-neutral-200/50 shadow-lg">
         <CardContent className="p-6">
           <div className="text-center">
-            <AlertTriangle className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
-            <p className="text-sm text-gray-600 mb-4">{error}</p>
-            <Button onClick={fetchSummary} size="sm">
-              <RefreshCw className="w-4 h-4 mr-2" />
+            <AlertTriangle className="w-8 h-8 text-accent-500 mx-auto mb-2" />
+            <p className="text-sm text-neutral-600 mb-4">{error}</p>
+            <Button 
+              onClick={fetchSummary} 
+              size="sm" 
+              variant="outline"
+              aria-label="Tentar carregar dados novamente"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" aria-hidden="true" />
               Tentar novamente
             </Button>
           </div>
@@ -70,11 +75,11 @@ export function DataInsights() {
 
   if (loading || !summaryData) {
     return (
-      <Card className="glass">
+      <Card className="bg-white/80 backdrop-blur-sm border-neutral-200/50 shadow-lg">
         <CardContent className="p-6">
           <div className="text-center">
-            <RefreshCw className="w-8 h-8 text-primary animate-spin mx-auto mb-2" />
-            <p className="text-sm text-gray-600">Carregando insights...</p>
+            <RefreshCw className="w-8 h-8 text-primary-500 animate-spin mx-auto mb-2" />
+            <p className="text-sm text-neutral-600">Carregando insights...</p>
           </div>
         </CardContent>
       </Card>
@@ -85,42 +90,46 @@ export function DataInsights() {
   const totalClients = riskData.high_risk + riskData.medium_risk + riskData.low_risk
   
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="glass">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Users className="w-4 h-4 text-primary" />
-              Visão Geral da Carteira
+    <section className="space-y-6" aria-label="Insights dos dados" role="region">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="bg-white/80 backdrop-blur-sm border-neutral-200/50 shadow-lg hover:shadow-xl transition-all duration-300">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center">
+                <Users className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-neutral-800">Visão Geral da Carteira</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-xs text-gray-600">Total de Clientes:</span>
-                <span className="text-sm font-medium">{summaryData.total_clients}</span>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-neutral-600">Total de Clientes:</span>
+                <span className="text-base font-semibold text-neutral-800">{summaryData.total_clients}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-gray-600">Valor Total:</span>
-                <span className="text-sm font-medium">{formatCurrency(summaryData.total_debt)}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-neutral-600">Valor Total:</span>
+                <span className="text-base font-semibold text-primary-600">{formatCurrency(summaryData.total_debt)}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-gray-600">Ticket Médio:</span>
-                <span className="text-sm font-medium">{formatCurrency(summaryData.avg_debt)}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-neutral-600">Ticket Médio:</span>
+                <span className="text-base font-semibold text-neutral-800">{formatCurrency(summaryData.avg_debt)}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-xs text-gray-600">Atraso Médio:</span>
-                <span className="text-sm font-medium">{Math.round(summaryData.avg_delay)} dias</span>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-neutral-600">Atraso Médio:</span>
+                <span className="text-base font-semibold text-accent-600">{Math.round(summaryData.avg_delay)} dias</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="glass">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Target className="w-4 h-4 text-secondary" />
-              Segmentação de Risco
+        <Card className="bg-white/80 backdrop-blur-sm border-neutral-200/50 shadow-lg hover:shadow-xl transition-all duration-300">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-500 to-accent-600 flex items-center justify-center">
+                <Target className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-neutral-800">Segmentação de Risco</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -195,11 +204,17 @@ export function DataInsights() {
       </Card>
 
       <div className="text-center">
-        <Button onClick={fetchSummary} variant="outline" size="sm">
-          <RefreshCw className="w-4 h-4 mr-2" />
+        <Button 
+          onClick={fetchSummary} 
+          variant="outline" 
+          size="sm" 
+          className="hover:scale-105"
+          aria-label="Atualizar dados dos insights"
+        >
+          <RefreshCw className="w-4 h-4 mr-2" aria-hidden="true" />
           Atualizar Dados
         </Button>
       </div>
-    </div>
+    </section>
   )
 }

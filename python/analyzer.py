@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-NeoAssist Data Analyzer
-Script para análise de dados de cobrança e inadimplência
+NeoAssist Data Analyzer com Sistema RAG
+Script para análise de dados de cobrança e inadimplência da LavandeRio
 """
 
 import pandas as pd
@@ -9,13 +9,23 @@ import numpy as np
 import json
 import argparse
 import sys
+import os
 from datetime import datetime, timedelta
+from rag_system import LavandeRioRAG
 
 class CollectionAnalyzer:
     def __init__(self, data_path):
-        """Inicializa o analisador com dados de clientes"""
+        """Inicializa o analisador com dados da LavandeRio"""
         try:
-            self.df = pd.read_csv(data_path)
+            # Usar o novo dataset da LavandeRio
+            data_dir = os.path.dirname(data_path)
+            self.df = pd.read_csv(os.path.join(data_dir, "clientes_lavanderio.csv"))
+            self.transacoes_df = pd.read_csv(os.path.join(data_dir, "transacoes_financeiras.csv"))
+            self.metricas_df = pd.read_csv(os.path.join(data_dir, "metricas_lavanderio.csv"))
+            
+            # Inicializar sistema RAG
+            self.rag = LavandeRioRAG(data_dir)
+            
             self.validate_data()
         except Exception as e:
             raise Exception(f"Erro ao carregar dados: {str(e)}")
@@ -23,8 +33,8 @@ class CollectionAnalyzer:
     def validate_data(self):
         """Valida se os dados têm as colunas necessárias"""
         required_columns = [
-            'cliente_id', 'nome_empresa', 'valor_devido', 'dias_atraso',
-            'historico_pagamento', 'setor', 'porte', 'score_credito', 'canal_preferido'
+            'customer_id', 'razao_social', 'faturamento_mensal', 'dias_atraso',
+            'setor_cliente', 'score_neofin', 'canal_contato', 'status_conta'
         ]
         
         missing_columns = [col for col in required_columns if col not in self.df.columns]
@@ -32,66 +42,111 @@ class CollectionAnalyzer:
             raise Exception(f"Colunas obrigatórias não encontradas: {missing_columns}")
     
     def get_summary_stats(self):
-        """Retorna estatísticas resumidas da carteira"""
+        """Retorna estatísticas resumidas da carteira LavandeRio"""
         total_clients = len(self.df)
-        total_debt = self.df['valor_devido'].sum()
-        avg_debt = self.df['valor_devido'].mean()
+        total_revenue = self.df['faturamento_mensal'].sum()
+        avg_revenue = self.df['faturamento_mensal'].mean()
         avg_delay = self.df['dias_atraso'].mean()
         
-        # Segmentação por risco
+        # Segmentação por risco (baseado em dias de atraso)
         high_risk = len(self.df[self.df['dias_atraso'] > 60])
         medium_risk = len(self.df[(self.df['dias_atraso'] > 30) & (self.df['dias_atraso'] <= 60)])
         low_risk = len(self.df[self.df['dias_atraso'] <= 30])
         
-        # Distribuição por histórico
-        payment_history = self.df['historico_pagamento'].value_counts().to_dict()
+        # Distribuição por status de conta
+        status_distribution = self.df['status_conta'].value_counts().to_dict()
         
-        # Setores mais inadimplentes
-        sector_analysis = self.df.groupby('setor').agg({
-            'valor_devido': 'sum',
+        # Setores com maior faturamento
+        sector_analysis = self.df.groupby('setor_cliente').agg({
+            'faturamento_mensal': 'sum',
+            'dias_atraso': 'mean',
+            'score_neofin': 'mean'
+        }).sort_values('faturamento_mensal', ascending=False).head(5)
+        
+        # Análise por plano de serviço
+        plan_analysis = self.df.groupby('plano_servico').agg({
+            'faturamento_mensal': ['sum', 'mean', 'count'],
             'dias_atraso': 'mean'
-        }).sort_values('valor_devido', ascending=False).head(5)
+        }).round(2)
+        
+        # Converter para formato serializável
+        plan_dict = {}
+        for plan in plan_analysis.index:
+            plan_dict[plan] = {
+                'total_revenue': float(plan_analysis.loc[plan, ('faturamento_mensal', 'sum')]),
+                'avg_revenue': float(plan_analysis.loc[plan, ('faturamento_mensal', 'mean')]),
+                'client_count': int(plan_analysis.loc[plan, ('faturamento_mensal', 'count')]),
+                'avg_delay': float(plan_analysis.loc[plan, ('dias_atraso', 'mean')])
+            }
+        
+        # Últimas métricas disponíveis
+        latest_metrics = self.metricas_df.iloc[-1] if len(self.metricas_df) > 0 else None
         
         return {
             'total_clients': int(total_clients),
-            'total_debt': float(total_debt),
-            'avg_debt': float(avg_debt),
+            'total_monthly_revenue': float(total_revenue),
+            'avg_monthly_revenue': float(avg_revenue),
             'avg_delay': float(avg_delay),
             'risk_segmentation': {
                 'high_risk': int(high_risk),
                 'medium_risk': int(medium_risk),
                 'low_risk': int(low_risk)
             },
-            'payment_history_distribution': payment_history,
-            'top_sectors_by_debt': sector_analysis.to_dict('index'),
-            'analysis_timestamp': datetime.now().isoformat()
+            'status_distribution': status_distribution,
+            'top_sectors_by_revenue': sector_analysis.to_dict('index'),
+            'plan_analysis': plan_dict,
+            'latest_metrics': {
+                'taxa_inadimplencia': float(latest_metrics['taxa_inadimplencia']) if latest_metrics is not None else 0,
+                'receita_total': float(latest_metrics['receita_total']) if latest_metrics is not None else 0,
+                'churn_rate': float(latest_metrics['churn_rate']) if latest_metrics is not None else 0,
+                'margem_bruta': float(latest_metrics['margem_bruta']) if latest_metrics is not None else 0
+            },
+            'analysis_timestamp': datetime.now().isoformat(),
+            'empresa': 'LavandeRio - Soluções em Lavanderia Especializada'
         }
     
     def analyze_priority_clients(self):
-        """Identifica clientes prioritários para cobrança"""
-        # Score de prioridade baseado em valor, atraso e histórico
-        priority_weights = {
-            'mal_pagador': 3,
-            'regular': 2,
-            'bom_pagador': 1
-        }
+        """Identifica clientes prioritários para cobrança LavandeRio"""
+        # Score de prioridade baseado em faturamento, atraso e score Neofin
+        df_copy = self.df.copy()
         
-        self.df['priority_score'] = (
-            self.df['valor_devido'] * 0.4 +
-            self.df['dias_atraso'] * 50 * 0.4 +
-            self.df['historico_pagamento'].map(priority_weights) * 1000 * 0.2
+        # Normalizar valores para o cálculo
+        max_revenue = df_copy['faturamento_mensal'].max()
+        max_delay = df_copy['dias_atraso'].max() if df_copy['dias_atraso'].max() > 0 else 1
+        
+        # Calcular score de prioridade (maior = mais prioritário)
+        df_copy['priority_score'] = (
+            (df_copy['faturamento_mensal'] / max_revenue) * 0.4 +  # Impacto financeiro
+            (df_copy['dias_atraso'] / max_delay) * 0.4 +           # Urgência
+            ((1000 - df_copy['score_neofin']) / 1000) * 0.2       # Risco (score baixo = mais risco)
         )
         
-        priority_clients = self.df.nlargest(10, 'priority_score')[
-            ['cliente_id', 'nome_empresa', 'valor_devido', 'dias_atraso', 
-             'historico_pagamento', 'score_credito', 'priority_score']
+        # Filtrar apenas clientes com atraso ou inadimplentes
+        problematic_clients = df_copy[
+            (df_copy['dias_atraso'] > 0) | (df_copy['status_conta'] == 'inadimplente')
+        ].copy()
+        
+        if len(problematic_clients) == 0:
+            return {
+                'priority_clients': [],
+                'total_priority_revenue': 0,
+                'avg_priority_delay': 0,
+                'analysis_timestamp': datetime.now().isoformat(),
+                'message': 'Nenhum cliente com pendências encontrado'
+            }
+        
+        priority_clients = problematic_clients.nlargest(10, 'priority_score')[
+            ['customer_id', 'razao_social', 'faturamento_mensal', 'dias_atraso', 
+             'status_conta', 'score_neofin', 'setor_cliente', 'canal_contato', 'priority_score']
         ]
         
         return {
             'priority_clients': priority_clients.to_dict('records'),
-            'total_priority_debt': float(priority_clients['valor_devido'].sum()),
+            'total_priority_revenue': float(priority_clients['faturamento_mensal'].sum()),
             'avg_priority_delay': float(priority_clients['dias_atraso'].mean()),
-            'analysis_timestamp': datetime.now().isoformat()
+            'priority_by_sector': priority_clients['setor_cliente'].value_counts().to_dict(),
+            'analysis_timestamp': datetime.now().isoformat(),
+            'empresa': 'LavandeRio'
         }
     
     def analyze_collection_strategies(self):
@@ -123,6 +178,24 @@ class CollectionAnalyzer:
             'strategies_by_segment': strategies,
             'analysis_timestamp': datetime.now().isoformat()
         }
+    
+    def rag_query(self, query):
+        """Método especial para consultas RAG"""
+        try:
+            context = self.rag.get_context_for_query(query)
+            return {
+                'query': query,
+                'context': context,
+                'analysis_timestamp': datetime.now().isoformat(),
+                'type': 'rag_query'
+            }
+        except Exception as e:
+            return {
+                'query': query,
+                'context': f"Erro na consulta RAG: {str(e)}",
+                'analysis_timestamp': datetime.now().isoformat(),
+                'type': 'rag_error'
+            }
     
     def _get_strategy_recommendation(self, segment, avg_score):
         """Retorna recomendação de estratégia baseada no segmento e score"""
@@ -181,10 +254,11 @@ class CollectionAnalyzer:
         }
 
 def main():
-    parser = argparse.ArgumentParser(description='NeoAssist Data Analyzer')
-    parser.add_argument('--type', required=True, choices=['summary', 'priority', 'strategies', 'insights'],
+    parser = argparse.ArgumentParser(description='NeoAssist Data Analyzer com RAG')
+    parser.add_argument('--type', required=True, choices=['summary', 'priority', 'strategies', 'insights', 'rag'],
                         help='Tipo de análise a ser executada')
     parser.add_argument('--data', required=True, help='Caminho para o arquivo CSV de dados')
+    parser.add_argument('--query', help='Query para busca RAG (obrigatório quando type=rag)')
     
     args = parser.parse_args()
     
@@ -199,6 +273,10 @@ def main():
             result = analyzer.analyze_collection_strategies()
         elif args.type == 'insights':
             result = analyzer.generate_recovery_insights()
+        elif args.type == 'rag':
+            if not args.query:
+                raise Exception("Query é obrigatória para análise RAG. Use --query 'sua pergunta'")
+            result = analyzer.rag_query(args.query)
         
         # Output como JSON para integração com Next.js
         print(json.dumps(result, ensure_ascii=False, indent=2))

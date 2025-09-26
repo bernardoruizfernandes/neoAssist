@@ -1,0 +1,31 @@
+customer_id,razao_social,cnpj,plano_servico,faturamento_mensal,dias_atraso,ultima_cobranca,canal_contato,score_neofin,status_conta,setor_cliente,regiao,tipo_contrato
+C001,Hotel Copacabana Palace Ltda,12.345.678/0001-90,Premium,45000.00,0,2024-01-15,email,850,ativo,hotelaria,zona_sul,anual
+C002,Restaurante Antiquarius SA,23.456.789/0001-01,Standard,12000.00,5,2024-01-10,whatsapp,780,ativo,gastronomia,centro,mensal
+C003,Hospital Samaritano Rio,34.567.890/0001-12,Enterprise,85000.00,0,2024-01-12,email,920,ativo,saude,tijuca,anual
+C004,Spa & Resort Portobello,45.678.901/0001-23,Premium,28000.00,15,2023-12-28,telefone,690,ativo,hotelaria,barra,semestral
+C005,Clínica São Vicente Ltda,56.789.012/0001-34,Standard,8500.00,45,2023-12-01,email,520,inadimplente,saude,copacabana,mensal
+C006,Buffet Porcão Eventos,67.890.123/0001-45,Premium,22000.00,8,2024-01-08,whatsapp,740,ativo,eventos,leblon,trimestral
+C007,Hotel Windsor Barra,78.901.234/0001-56,Enterprise,52000.00,0,2024-01-14,email,880,ativo,hotelaria,barra,anual
+C008,Restaurante Marius Degustare,89.012.345/0001-67,Standard,9500.00,22,2023-12-20,telefone,650,ativo,gastronomia,ipanema,mensal
+C009,Academia Bio Ritmo,90.123.456/0001-78,Basic,3200.00,60,2023-11-20,sms,420,inadimplente,fitness,tijuca,mensal
+C010,Casa de Repouso Bem Viver,01.234.567/0001-89,Standard,15000.00,12,2024-01-03,email,710,ativo,saude,zona_norte,mensal
+C011,Hotel Nacional Rio,12.345.678/0002-01,Premium,38000.00,3,2024-01-12,email,800,ativo,hotelaria,centro,anual
+C012,Pizzaria Braz Ipanema,23.456.789/0002-12,Basic,4800.00,35,2023-12-10,whatsapp,480,ativo,gastronomia,ipanema,mensal
+C013,Laboratório Dasa Barra,34.567.890/0002-23,Enterprise,65000.00,0,2024-01-16,email,900,ativo,saude,barra,anual
+C014,Pousada Vila Galé,45.678.901/0002-34,Standard,18000.00,18,2023-12-25,telefone,620,ativo,hotelaria,recreio,semestral
+C015,Clínica Perinatal Barra,56.789.012/0002-45,Premium,32000.00,0,2024-01-11,email,860,ativo,saude,barra,anual
+C016,Bistrô Zaza Ipanema,67.890.123/0002-56,Basic,6200.00,25,2023-12-18,whatsapp,580,ativo,gastronomia,ipanema,mensal
+C017,Hotel Sheraton Leblon,78.901.234/0002-67,Enterprise,72000.00,0,2024-01-13,email,940,ativo,hotelaria,leblon,anual
+C018,Centro Médico Barra Life,89.012.345/0002-78,Premium,28500.00,7,2024-01-08,email,760,ativo,saude,barra,trimestral
+C019,Churrascaria Palace,90.123.456/0002-89,Standard,11000.00,42,2023-12-05,telefone,510,inadimplente,gastronomia,copacabana,mensal
+C020,Spa Delfim Verde,01.234.567/0002-90,Basic,5500.00,55,2023-11-25,sms,390,inadimplente,wellness,zona_sul,mensal
+C021,Hotel Tulip Inn Copacabana,12.345.678/0003-12,Premium,41000.00,0,2024-01-14,email,820,ativo,hotelaria,copacabana,anual
+C022,Restaurante Aprazível,23.456.789/0003-23,Standard,13500.00,10,2024-01-05,whatsapp,720,ativo,gastronomia,santa_teresa,mensal
+C023,Hospital Copa DOr,34.567.890/0003-34,Enterprise,95000.00,0,2024-01-15,email,960,ativo,saude,copacabana,anual
+C024,Pousada Natureza,45.678.901/0003-45,Basic,7800.00,28,2023-12-15,telefone,540,ativo,hotelaria,zona_oeste,mensal
+C025,Academia Bodytech Barra,56.789.012/0003-56,Standard,8900.00,20,2023-12-22,whatsapp,640,ativo,fitness,barra,mensal
+C026,Clínica Fertibaby,67.890.123/0003-67,Premium,35000.00,0,2024-01-10,email,890,ativo,saude,leblon,anual
+C027,Bistrô Garota de Ipanema,78.901.234/0003-78,Basic,4500.00,48,2023-11-28,whatsapp,450,inadimplente,gastronomia,ipanema,mensal
+C028,Hotel Marina All Suites,89.012.345/0003-89,Enterprise,58000.00,0,2024-01-12,email,910,ativo,hotelaria,leblon,anual
+C029,Casa de Saúde São José,90.123.456/0003-90,Premium,42000.00,5,2024-01-09,email,810,ativo,saude,tijuca,anual
+C030,Restaurante Zuka,01.234.567/0003-01,Standard,16000.00,15,2023-12-28,telefone,670,ativo,gastronomia,leblon,mensal

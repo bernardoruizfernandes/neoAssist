@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Send, User, Bot } from 'lucide-react'
+import { Send, User, Bot, Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Message {
@@ -45,28 +45,108 @@ export function ChatInterface() {
     setIsLoading(true)
 
     try {
-      // Check for special commands that trigger Python analysis
+      // Advanced Intent Classification System
       let analysisData = null
-      if (currentInput.toLowerCase().includes('analis') || 
-          currentInput.toLowerCase().includes('priorit') ||
-          currentInput.toLowerCase().includes('estratég') ||
-          currentInput.toLowerCase().includes('insight')) {
-        
+      const input = currentInput.toLowerCase()
+      
+      // Step 1: Intent Detection
+      const intentPatterns = {
+        descriptive_analysis: [
+          'como.*segmentado', 'como.*distribuído', 'como.*classificado',
+          'qual.*situação', 'como.*está', 'como.*encontra',
+          'mostre.*dados', 'analise.*atual', 'status.*carteira'
+        ],
+        specific_data: [
+          'quantos', 'quanto', 'qual.*total', 'número.*de',
+          'soma.*de', 'valor.*total', 'lista.*de'
+        ],
+        strategic_advice: [
+          'como.*cobrar', 'estratég', 'abordagem', 'recomenda',
+          'sugira', 'como.*proceder', 'próximos.*passos'
+        ],
+        priority_analysis: [
+          'priorit', 'urgent', 'importante', 'primeiro',
+          'ranking', 'ordem.*import'
+        ],
+        insights_recovery: [
+          'insight', 'recupera', 'potencial', 'estimativa',
+          'previsão', 'probabilidade', 'chance'
+        ]
+      }
+      
+      // Classify intent
+      let detectedIntent = 'summary'
+      let intentScore = 0
+      
+      for (const [intent, patterns] of Object.entries(intentPatterns)) {
+        const matches = patterns.filter(pattern => new RegExp(pattern).test(input)).length
+        if (matches > intentScore) {
+          intentScore = matches
+          detectedIntent = intent
+        }
+      }
+      
+      // Step 2: Determine if data analysis is needed
+      const needsAnalysis = intentScore > 0 || 
+          input.includes('analis') || input.includes('dados') ||
+          input.includes('client') || input.includes('carteira') ||
+          input.includes('risco') || input.includes('cobrança')
+
+      if (needsAnalysis) {
+        // Map intent to analysis type
         let analysisType = 'summary'
-        if (currentInput.toLowerCase().includes('priorit')) analysisType = 'priority'
-        if (currentInput.toLowerCase().includes('estratég')) analysisType = 'strategies'
-        if (currentInput.toLowerCase().includes('insight')) analysisType = 'insights'
+        switch (detectedIntent) {
+          case 'priority_analysis':
+            analysisType = 'priority'
+            break
+          case 'strategic_advice':
+            analysisType = 'strategies'
+            break
+          case 'insights_recovery':
+            analysisType = 'insights'
+            break
+          case 'descriptive_analysis':
+          case 'specific_data':
+          default:
+            analysisType = 'summary'
+        }
 
         try {
-          const analysisResponse = await fetch('/api/analyze', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ data: {}, analysisType })
-          })
-          
-          if (analysisResponse.ok) {
-            const analysisResult = await analysisResponse.json()
-            analysisData = analysisResult.analysis
+          // Para perguntas específicas sobre contexto/dados, usar RAG
+          if (detectedIntent === 'descriptive_analysis' || 
+              input.includes('lavanderio') || 
+              input.includes('empresa') ||
+              input.includes('contexto') ||
+              input.includes('histórico') ||
+              input.includes('tendência')) {
+            
+            // Consulta RAG para contexto específico
+            const ragResponse = await fetch('/api/analyze', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                data: {}, 
+                analysisType: 'rag',
+                query: currentInput 
+              })
+            })
+            
+            if (ragResponse.ok) {
+              const ragResult = await ragResponse.json()
+              analysisData = ragResult.analysis
+            }
+          } else {
+            // Análise padrão para outros tipos
+            const analysisResponse = await fetch('/api/analyze', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ data: {}, analysisType })
+            })
+            
+            if (analysisResponse.ok) {
+              const analysisResult = await analysisResponse.json()
+              analysisData = analysisResult.analysis
+            }
           }
         } catch (analysisError) {
           console.error('Analysis error:', analysisError)
@@ -81,7 +161,8 @@ export function ChatInterface() {
         body: JSON.stringify({
           message: currentInput,
           history: messages,
-          analysisData: analysisData
+          analysisData: analysisData,
+          detectedIntent: detectedIntent
         }),
       })
 
@@ -117,85 +198,111 @@ export function ChatInterface() {
   }
 
   return (
-    <div className="flex flex-col h-screen">
-      {/* Header */}
-      <div className="border-b border-gray-200 px-6 py-4 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-xl font-semibold text-center">NeoAssist</h1>
-          <p className="text-sm text-gray-500 text-center">Assistente Inteligente para Automação Financeira</p>
-        </div>
-      </div>
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto bg-gray-50">
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full p-12 text-center">
-            <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-6">
-              <Bot className="w-8 h-8 text-gray-600" />
+    <div className="flex flex-col h-screen bg-neutral-50">
+      {/* Modern Minimalist Header */}
+      <header className="border-b border-neutral-200/50 backdrop-blur-sm bg-white/80 sticky top-0 z-10" role="banner">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+          <div className="flex items-center justify-between">
+            <button 
+              onClick={() => window.location.reload()}
+              className="flex items-center space-x-3 hover:opacity-80 transition-opacity duration-200"
+            >
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center">
+                <Bot className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-left">
+                <h1 className="text-lg sm:text-xl font-semibold text-neutral-900">NeoAssist</h1>
+                <p className="text-xs text-neutral-500">Powered by Neofin AI</p>
+              </div>
+            </button>
+            
+            <div className="relative group">
+              <div className="w-8 h-8 rounded-lg bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center transition-colors duration-200 cursor-help">
+                <Info className="w-4 h-4 text-neutral-600" />
+              </div>
+              <div className="absolute right-0 top-10 w-80 p-4 bg-white border border-neutral-200 rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20">
+                <div className="text-sm text-neutral-800 space-y-2">
+                  <h3 className="font-semibold text-primary-600">Sobre o NeoAssist</h3>
+                  <p>Assistente inteligente especializado em análise financeira B2B da LavandeRio, uma rede de lavanderias com 30 clientes ativos.</p>
+                  <p>Sistema RAG integrado para consultas contextuais sobre métricas financeiras, inadimplência e estratégias de cobrança.</p>
+                </div>
+              </div>
             </div>
-            <h2 className="text-3xl font-semibold mb-4 text-gray-800">Como posso ajudar você?</h2>
-            <p className="text-gray-600 mb-8 text-lg max-w-3xl leading-relaxed">
-              Sou especializado em automação financeira, análise de fluxo de caixa, gestão de contas a pagar/receber, otimização de processos e muito mais para empresas B2B.
-            </p>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full max-w-4xl">
+          </div>
+        </div>
+      </header>
+
+      {/* Messages Area */}
+      <main className="flex-1 overflow-y-auto" role="main" aria-label="Área de mensagens">
+        {messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full p-4 sm:p-8 text-center">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center mb-8 animate-pulse-slow">
+              <Bot className="w-10 h-10 text-primary-600" />
+            </div>
+            <h2 className="text-xl sm:text-2xl font-semibold mb-4 text-neutral-900">Como posso ajudar você?</h2>
+            <div className="flex flex-col space-y-3 w-full max-w-2xl">
               <button
-                onClick={() => setInput('Analise o fluxo de caixa e projeções financeiras')}
-                className="p-6 text-left bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 shadow-sm hover:shadow-md"
+                onClick={() => setInput('Como está a situação atual da LavandeRio?')}
+                className="p-4 text-left border border-neutral-200 rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-all duration-200"
               >
-                <div className="font-semibold text-gray-800 mb-2">💰 Análise de fluxo de caixa</div>
-                <div className="text-sm text-gray-600">Projeções financeiras e otimização de capital de giro</div>
+                <div className="text-sm font-medium text-neutral-700">Como está a situação atual da LavandeRio?</div>
               </button>
               <button
-                onClick={() => setInput('Como automatizar o processo de contas a pagar e receber?')}
-                className="p-6 text-left bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 shadow-sm hover:shadow-md"
+                onClick={() => setInput('Quais clientes precisam de atenção prioritária?')}
+                className="p-4 text-left border border-neutral-200 rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-all duration-200"
               >
-                <div className="font-semibold text-gray-800 mb-2">⚡ Automação de processos</div>
-                <div className="text-sm text-gray-600">Automatize contas a pagar, receber e conciliação bancária</div>
+                <div className="text-sm font-medium text-neutral-700">Quais clientes precisam de atenção prioritária?</div>
               </button>
               <button
-                onClick={() => setInput('Analise os riscos de crédito e inadimplência dos clientes')}
-                className="p-6 text-left bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 shadow-sm hover:shadow-md"
+                onClick={() => setInput('Como nossos clientes estão distribuídos por setor?')}
+                className="p-4 text-left border border-neutral-200 rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-all duration-200"
               >
-                <div className="font-semibold text-gray-800 mb-2">🛡️ Gestão de risco</div>
-                <div className="text-sm text-gray-600">Análise de crédito, prevenção de fraudes e gestão de inadimplência</div>
-              </button>
-              <button
-                onClick={() => setInput('Gere relatórios financeiros e dashboards analíticos')}
-                className="p-6 text-left bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 shadow-sm hover:shadow-md"
-              >
-                <div className="font-semibold text-gray-800 mb-2">📊 Relatórios inteligentes</div>
-                <div className="text-sm text-gray-600">Dashboards analíticos e insights para tomada de decisão</div>
+                <div className="text-sm font-medium text-neutral-700">Como nossos clientes estão distribuídos por setor?</div>
               </button>
             </div>
           </div>
         ) : (
-          <div className="max-w-5xl mx-auto">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6">
             {messages.map((message) => (
               <div
                 key={message.id}
                 className={cn(
-                  "border-b border-gray-200",
-                  message.role === 'assistant' ? 'bg-white' : 'bg-gray-50'
+                  "py-8 animate-fade-in",
+                  message.role === 'assistant' ? 'bg-transparent' : 'bg-transparent'
                 )}
               >
-                <div className="flex gap-6 px-8 py-8 max-w-4xl mx-auto">
+                <div className={cn(
+                  "flex gap-4 max-w-full",
+                  message.role === 'user' ? 'flex-row-reverse' : ''
+                )}>
                   <div className="flex-shrink-0">
                     <div className={cn(
-                      "w-10 h-10 rounded-full flex items-center justify-center",
+                      "w-8 h-8 rounded-lg flex items-center justify-center shadow-sm",
                       message.role === 'assistant' 
-                        ? 'bg-green-600 text-white' 
-                        : 'bg-gray-800 text-white'
+                        ? 'bg-primary-500 text-white' 
+                        : 'bg-neutral-700 text-white'
                     )}>
                       {message.role === 'assistant' ? (
-                        <Bot className="w-5 h-5" />
+                        <Bot className="w-4 h-4" />
                       ) : (
-                        <User className="w-5 h-5" />
+                        <User className="w-4 h-4" />
                       )}
                     </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="prose prose-lg max-w-none">
-                      <div className="whitespace-pre-wrap text-gray-800 leading-relaxed">
+                  <div className={cn(
+                    "flex-1 min-w-0 space-y-2",
+                    message.role === 'user' ? 'text-right' : ''
+                  )}>
+                    <div className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
+                      {message.role === 'assistant' ? 'NeoAssist' : 'Você'}
+                    </div>
+                    <div className={cn(
+                      "prose prose-sm max-w-none",
+                      message.role === 'assistant' 
+                        ? 'text-neutral-800' 
+                        : 'text-neutral-700'
+                    )}>
+                      <div className="whitespace-pre-wrap leading-relaxed font-medium">
                         {message.content}
                       </div>
                     </div>
@@ -205,18 +312,21 @@ export function ChatInterface() {
             ))}
 
             {isLoading && (
-              <div className="border-b border-gray-200 bg-white">
-                <div className="flex gap-6 px-8 py-8 max-w-4xl mx-auto">
+              <div className="py-8 animate-fade-in">
+                <div className="flex gap-4 max-w-full">
                   <div className="flex-shrink-0">
-                    <div className="w-10 h-10 rounded-full bg-green-600 text-white flex items-center justify-center">
-                      <Bot className="w-5 h-5" />
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 text-white flex items-center justify-center shadow-sm">
+                      <Bot className="w-4 h-4" />
                     </div>
                   </div>
-                  <div className="flex-1">
-                    <div className="flex space-x-2 items-center">
-                      <div className="w-3 h-3 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-3 h-3 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-3 h-3 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <div className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
+                      NeoAssist
+                    </div>
+                    <div className="flex space-x-1 items-center">
+                      <div className="w-2 h-2 bg-primary-400 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-primary-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-primary-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                     </div>
                   </div>
                 </div>
@@ -226,36 +336,37 @@ export function ChatInterface() {
             <div ref={messagesEndRef} />
           </div>
         )}
-      </div>
+      </main>
 
-      {/* Input */}
-      <div className="border-t border-gray-200 bg-white">
-        <div className="max-w-4xl mx-auto p-6">
-          <form onSubmit={handleSubmit} className="flex gap-4">
+      {/* Modern Input Area */}
+      <div className="border-t border-neutral-200/50 bg-white/80 backdrop-blur-sm">
+        <div className="max-w-4xl mx-auto p-4 sm:p-6">
+          <form onSubmit={handleSubmit} className="flex gap-2 sm:gap-3">
             <div className="flex-1 relative">
               <textarea
                 ref={textareaRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Digite sua pergunta sobre automação financeira, fluxo de caixa, gestão de riscos ou otimização de processos..."
+                placeholder="Pergunte sobre a LavandeRio, seus clientes, métricas financeiras, tendências..."
                 disabled={isLoading}
                 rows={1}
-                className="w-full resize-none border border-gray-300 rounded-xl px-6 py-4 text-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:opacity-50 max-h-40 shadow-sm"
-                style={{ minHeight: '56px' }}
+                aria-label="Digite sua pergunta"
+                aria-describedby="input-help"
+                className="w-full resize-none border border-neutral-300 rounded-2xl px-5 py-4 text-base focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 disabled:opacity-50 max-h-40 shadow-sm placeholder:text-neutral-400 bg-white/90"
+                style={{ minHeight: '52px' }}
               />
             </div>
             <Button 
               type="submit" 
               disabled={isLoading || !input.trim()}
-              className="self-end h-[56px] px-6 bg-green-600 hover:bg-green-700 text-white rounded-xl shadow-sm transition-colors"
+              aria-label={isLoading ? "Enviando mensagem..." : "Enviar mensagem"}
+              className="self-end h-[52px] px-5"
             >
-              <Send className="w-5 h-5" />
+              <Send className="w-4 h-4" aria-hidden="true" />
+              <span className="sr-only">{isLoading ? "Enviando..." : "Enviar"}</span>
             </Button>
           </form>
-          <p className="text-xs text-gray-500 mt-3 text-center">
-            NeoAssist pode fornecer análises baseadas em dados reais e soluções de automação financeira personalizadas.
-          </p>
         </div>
       </div>
     </div>
