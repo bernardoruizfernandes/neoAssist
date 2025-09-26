@@ -398,7 +398,7 @@ export function ChatInterface() {
                             ) : (
                               <>
                                 <BarChart3 className="w-4 h-4 mr-2" />
-                                📊 Gerar Gráfico
+                                Gerar Gráfico
                               </>
                             )}
                           </Button>

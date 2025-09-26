@@ -111,7 +111,7 @@ export function detectChartableContent(content: string, userQuery: string): Char
   
   // Aumentar confiança se há palavras-chave específicas na query
   const explicitChartKeywords = [
-    'gráfico', 'chart', 'visualiza', 'mostra', 'plota', 'desenha'
+    'gráfico', 'grafico', 'chart', 'visualiza', 'mostra', 'plota', 'desenha'
   ]
   
   const hasExplicitRequest = explicitChartKeywords.some(keyword => 
