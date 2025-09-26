@@ -14,7 +14,8 @@ export async function POST(request: NextRequest) {
 
     let enhancedMessage = message
     if (analysisData) {
-      enhancedMessage = `${message}\n\nDados de análise relevantes:\n${JSON.stringify(analysisData, null, 2)}`
+      const directive = `\n\nINSTRUÇÃO IMPORTANTE: Você TEM acesso aos dados abaixo. Use-os OBRIGATORIAMENTE para realizar a análise solicitada, calculando métricas numéricas e apresentando projeções quando aplicável. Não diga que não tem acesso a dados.\n\nDados de análise relevantes (JSON):\n`
+      enhancedMessage = `${message}${directive}${JSON.stringify(analysisData, null, 2)}`
     }
 
     const messages = [
