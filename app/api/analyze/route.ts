@@ -24,7 +24,8 @@ export async function POST(request: NextRequest) {
 
     // In Vercel, proxy to the Python Serverless Function
     if (isVercel) {
-      const res = await fetch(PYTHON_FUNCTION_PATH, {
+      const absoluteUrl = new URL(PYTHON_FUNCTION_PATH, request.url)
+      const res = await fetch(absoluteUrl.href, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ analysisType, data, query })
