@@ -2,6 +2,9 @@
   "functions": {
     "app/api/analyze/route.ts": {
       "runtime": "nodejs18.x"
+    },
+    "api/analyze_python.py": {
+      "runtime": "python3.11"
     }
   },
   "builds": [
