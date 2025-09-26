@@ -28,6 +28,12 @@ def generate_temporal_chart(chart_type, query=""):
     if metricas_df is None:
         return None
     
+    # Verificar se é gráfico com múltiplas linhas
+    is_multi_line = ('faturamento' in query.lower() and 'inadimpl' in query.lower()) or \
+                   ('receita' in query.lower() and 'inadimpl' in query.lower()) or \
+                   ('duas linhas' in query.lower()) or \
+                   (' e ' in query.lower() and ('receita' in query.lower() or 'faturamento' in query.lower()))
+    
     # Dados de evolução mensal
     chart_data = []
     for _, row in metricas_df.iterrows():
@@ -38,7 +44,16 @@ def generate_temporal_chart(chart_type, query=""):
             '2024-01': 'Jan 2024'
         }.get(row['mes_ano'], row['mes_ano'])
         
-        if 'receita' in query.lower() or 'faturamento' in query.lower():
+        if is_multi_line:
+            # Gráfico com múltiplas séries
+            chart_data.append({
+                'name': mes_nome,
+                'Faturamento': float(row['receita_total']),
+                'Taxa_Inadimplencia': float(row['taxa_inadimplencia'])
+            })
+            title = 'Evolução do Faturamento e Taxa de Inadimplência'
+            description = 'Comparação mensal entre faturamento (R$) e taxa de inadimplência (%)'
+        elif 'receita' in query.lower() or 'faturamento' in query.lower():
             chart_data.append({
                 'name': mes_nome,
                 'value': float(row['receita_total'])
@@ -90,64 +105,124 @@ def generate_distribution_chart(query=""):
         return None
     
     if 'setor' in query.lower():
-        # Distribuição por setor
-        setor_stats = clientes_df.groupby('setor_cliente').agg({
-            'faturamento_mensal': 'sum'
-        }).reset_index()
-        
-        chart_data = []
-        for _, row in setor_stats.iterrows():
-            chart_data.append({
-                'name': row['setor_cliente'].title(),
-                'value': float(row['faturamento_mensal'])
-            })
-        
-        return {
-            'type': 'pie',
-            'data': chart_data,
-            'title': 'Distribuição por Setor',
-            'description': 'Faturamento total por setor de atividade'
-        }
+        # Verificar se é quantidade ou faturamento
+        if 'quantidade' in query.lower() or 'quantas' in query.lower() or 'número' in query.lower():
+            # Quantidade de empresas por setor
+            setor_count = clientes_df['setor_cliente'].value_counts().reset_index()
+            setor_count.columns = ['setor_cliente', 'count']
+            
+            chart_data = []
+            for _, row in setor_count.iterrows():
+                chart_data.append({
+                    'name': row['setor_cliente'].title(),
+                    'value': int(row['count'])
+                })
+            
+            return {
+                'type': 'pie',
+                'data': chart_data,
+                'title': 'Quantidade de Empresas por Setor',
+                'description': 'Número de clientes distribuídos por setor de atividade'
+            }
+        else:
+            # Distribuição por faturamento
+            setor_stats = clientes_df.groupby('setor_cliente').agg({
+                'faturamento_mensal': 'sum'
+            }).reset_index()
+            
+            chart_data = []
+            for _, row in setor_stats.iterrows():
+                chart_data.append({
+                    'name': row['setor_cliente'].title(),
+                    'value': float(row['faturamento_mensal'])
+                })
+            
+            return {
+                'type': 'pie',
+                'data': chart_data,
+                'title': 'Distribuição por Setor',
+                'description': 'Faturamento total por setor de atividade'
+            }
     
     elif 'plano' in query.lower():
-        # Distribuição por plano
-        plano_stats = clientes_df.groupby('plano_servico').agg({
-            'faturamento_mensal': 'sum'
-        }).reset_index()
-        
-        chart_data = []
-        for _, row in plano_stats.iterrows():
-            chart_data.append({
-                'name': row['plano_servico'],
-                'value': float(row['faturamento_mensal'])
-            })
-        
-        return {
-            'type': 'pie',
-            'data': chart_data,
-            'title': 'Distribuição por Plano',
-            'description': 'Faturamento total por tipo de plano'
-        }
+        # Verificar se é quantidade ou faturamento
+        if 'quantidade' in query.lower() or 'quantas' in query.lower() or 'número' in query.lower():
+            # Quantidade de empresas por plano
+            plano_count = clientes_df['plano_servico'].value_counts().reset_index()
+            plano_count.columns = ['plano_servico', 'count']
+            
+            chart_data = []
+            for _, row in plano_count.iterrows():
+                chart_data.append({
+                    'name': row['plano_servico'],
+                    'value': int(row['count'])
+                })
+            
+            return {
+                'type': 'pie',
+                'data': chart_data,
+                'title': 'Quantidade de Empresas por Plano',
+                'description': 'Número de clientes distribuídos por tipo de plano'
+            }
+        else:
+            # Distribuição por faturamento
+            plano_stats = clientes_df.groupby('plano_servico').agg({
+                'faturamento_mensal': 'sum'
+            }).reset_index()
+            
+            chart_data = []
+            for _, row in plano_stats.iterrows():
+                chart_data.append({
+                    'name': row['plano_servico'],
+                    'value': float(row['faturamento_mensal'])
+                })
+            
+            return {
+                'type': 'pie',
+                'data': chart_data,
+                'title': 'Distribuição por Plano',
+                'description': 'Faturamento total por tipo de plano'
+            }
     
     elif 'regi' in query.lower():
-        # Distribuição por região
-        regiao_stats = clientes_df.groupby('regiao').agg({
-            'faturamento_mensal': 'sum'
-        }).reset_index()
-        
-        chart_data = []
-        for _, row in regiao_stats.iterrows():
-            chart_data.append({
-                'name': row['regiao'].replace('_', ' ').title(),
-                'value': float(row['faturamento_mensal'])
-            })
-        
-        return {
-            'type': 'pie',
-            'data': chart_data,
-            'title': 'Distribuição por Região',
-            'description': 'Faturamento total por região do Rio de Janeiro'
-        }
+        # Verificar se é quantidade ou faturamento
+        if 'quantidade' in query.lower() or 'quantas' in query.lower() or 'número' in query.lower():
+            # Quantidade de empresas por região
+            regiao_count = clientes_df['regiao'].value_counts().reset_index()
+            regiao_count.columns = ['regiao', 'count']
+            
+            chart_data = []
+            for _, row in regiao_count.iterrows():
+                chart_data.append({
+                    'name': row['regiao'].replace('_', ' ').title(),
+                    'value': int(row['count'])
+                })
+            
+            return {
+                'type': 'pie',
+                'data': chart_data,
+                'title': 'Quantidade de Empresas por Região',
+                'description': 'Número de clientes distribuídos por região do Rio de Janeiro'
+            }
+        else:
+            # Distribuição por faturamento
+            regiao_stats = clientes_df.groupby('regiao').agg({
+                'faturamento_mensal': 'sum'
+            }).reset_index()
+            
+            chart_data = []
+            for _, row in regiao_stats.iterrows():
+                chart_data.append({
+                    'name': row['regiao'].replace('_', ' ').title(),
+                    'value': float(row['faturamento_mensal'])
+                })
+            
+            return {
+                'type': 'pie',
+                'data': chart_data,
+                'title': 'Distribuição por Região',
+                'description': 'Faturamento total por região do Rio de Janeiro'
+            }
     
     else:
         # Default: distribuição por setor

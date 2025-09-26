@@ -21,7 +21,13 @@ export function detectChartableContent(content: string, userQuery: string): Char
     /varia[çc][aã]o/,
     /janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro/,
     /2023|2024/,
-    /trimestre|semestre|anual/
+    /trimestre|semestre|anual/,
+    /duas linhas/,
+    /múltiplas linhas/,
+    /faturamento.*inadimpl/,
+    /inadimpl.*faturamento/,
+    /receita.*inadimpl/,
+    /inadimpl.*receita/
   ]
   
   // Padrões que indicam distribuições (Pie Charts)
@@ -35,7 +41,11 @@ export function detectChartableContent(content: string, userQuery: string): Char
     /participa[çc][aã]o/,
     /propor[çc][aã]o/,
     /percentual/,
-    /porcentagem/
+    /porcentagem/,
+    /quantidade.*por/,
+    /n[úu]mero.*por/,
+    /quantas.*empresas/,
+    /quantos.*clientes/
   ]
   
   // Padrões que indicam rankings/comparações (Bar Charts)

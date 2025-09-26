@@ -106,8 +106,12 @@ export function ChatInterface() {
       
       // Step 3: Check for explicit chart requests
       const explicitChartRequest = input.includes('gráfico') || 
-          input.includes('chart') || input.includes('visualiza') ||
-          input.includes('plota') || input.includes('mostra em gráfico')
+          input.includes('gráfico') || input.includes('chart') || 
+          input.includes('visualiza') || input.includes('plota') || 
+          input.includes('mostra em gráfico') || input.includes('gera um gráfico') ||
+          input.includes('gere um gráfico') || input.includes('fazer um gráfico') ||
+          input.includes('criar um gráfico') || input.includes('desenha') ||
+          /gera\s+.*gr[áa]fico/.test(input) || /faz\s+.*gr[áa]fico/.test(input)
 
       if (needsAnalysis) {
         // Map intent to analysis type
@@ -200,9 +204,9 @@ export function ChatInterface() {
       setMessages(prev => [...prev, assistantMessage])
       
       // Se foi um pedido explícito de gráfico, gerar automaticamente
-      if (explicitChartRequest && chartDetection.chartType) {
+      if (explicitChartRequest) {
         setTimeout(() => {
-          generateChart(assistantMessage.id, data.content)
+          generateChart(assistantMessage.id, currentInput) // Usar a query original do usuário
         }, 500) // Pequeno delay para a mensagem aparecer primeiro
       }
     } catch (error) {
@@ -324,10 +328,10 @@ export function ChatInterface() {
                 <div className="text-sm font-medium text-neutral-700">Quais clientes precisam de atenção prioritária?</div>
               </button>
               <button
-                onClick={() => setInput('Como nossos clientes estão distribuídos por setor?')}
+                onClick={() => setInput('Gera um gráfico de quantidade de empresas por setor')}
                 className="p-4 text-left border border-neutral-200 rounded-lg hover:border-primary-300 hover:bg-primary-50 transition-all duration-200"
               >
-                <div className="text-sm font-medium text-neutral-700">Como nossos clientes estão distribuídos por setor?</div>
+                <div className="text-sm font-medium text-neutral-700">Gera um gráfico de quantidade de empresas por setor</div>
               </button>
             </div>
           </div>

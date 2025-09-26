@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
       
       const template = templates[detectedIntent as keyof typeof templates] || templates.descriptive_analysis
       
-      const directive = `\n\n🔥 DADOS REAIS ANEXADOS - USE OBRIGATORIAMENTE 🔥\n\n⚡ NÍVEL DE RESPOSTA: ${template.level}\n\n🎯 INSTRUÇÃO ESPECÍFICA: ${template.instruction}\n\n🧠 PROCESSO DE PENSAMENTO: ${template.chainOfThought}\n\n📊 DADOS DE ANÁLISE:\n`
+      const directive = `\n\n🔥 DADOS REAIS ANEXADOS - USE OBRIGATORIAMENTE 🔥\n\n⚡ NÍVEL DE RESPOSTA: ${template.level}\n\n🎯 INSTRUÇÃO ESPECÍFICA: ${template.instruction}\n\n🧠 PROCESSO DE PENSAMENTO: ${template.chainOfThought}\n\n📊 IMPORTANTE SOBRE GRÁFICOS: Se a pergunta solicitar gráficos, visualizações ou dados que podem ser visualizados (como "quantidade por setor", "distribuição", "evolução temporal"), SEMPRE termine sua resposta sugerindo: "💡 Esta análise pode ser visualizada em gráfico - clique no botão 'Gerar Gráfico' que aparecerá abaixo da resposta!"\n\n📊 DADOS DE ANÁLISE:\n`
       enhancedMessage = `${message}${directive}${JSON.stringify(analysisData, null, 2)}\n\n✅ Use o processo de pensamento acima e analise os dados para responder`
     }
 

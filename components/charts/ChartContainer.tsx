@@ -66,24 +66,30 @@ export function ChartContainer({ chartData, className = '' }: ChartContainerProp
                 borderRadius: '8px',
                 boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
               }}
-              formatter={(value: any) => {
-                if (typeof value === 'number' && value >= 1000) {
-                  return new Intl.NumberFormat('pt-BR', { 
+              formatter={(value: any, name: any) => {
+                if (typeof value === 'number' && value >= 1000 && !name.includes('%') && !name.includes('Taxa')) {
+                  return [new Intl.NumberFormat('pt-BR', { 
                     style: 'currency', 
                     currency: 'BRL' 
-                  }).format(value)
+                  }).format(value), name]
                 }
-                return value
+                return [value, name]
               }}
             />
-            <Line 
-              type="monotone" 
-              dataKey="value" 
-              stroke={COLORS.primary} 
-              strokeWidth={3}
-              dot={{ fill: COLORS.primary, strokeWidth: 2, r: 4 }}
-              activeDot={{ r: 6, stroke: COLORS.primary, strokeWidth: 2 }}
-            />
+            <Legend />
+            {/* Suporte para múltiplas linhas */}
+            {data.length > 0 && Object.keys(data[0]).filter(key => key !== 'name').map((key, index) => (
+              <Line 
+                key={key}
+                type="monotone" 
+                dataKey={key} 
+                stroke={CHART_COLORS[index % CHART_COLORS.length]} 
+                strokeWidth={3}
+                dot={{ fill: CHART_COLORS[index % CHART_COLORS.length], strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, stroke: CHART_COLORS[index % CHART_COLORS.length], strokeWidth: 2 }}
+                name={key === 'value' ? 'Valor' : key.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+              />
+            ))}
           </LineChart>
         )
 
@@ -200,23 +206,29 @@ export function ChartContainer({ chartData, className = '' }: ChartContainerProp
                 borderRadius: '8px',
                 boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
               }}
-              formatter={(value: any) => {
-                if (typeof value === 'number' && value >= 1000) {
-                  return new Intl.NumberFormat('pt-BR', { 
+              formatter={(value: any, name: any) => {
+                if (typeof value === 'number' && value >= 1000 && !name.includes('%') && !name.includes('Taxa')) {
+                  return [new Intl.NumberFormat('pt-BR', { 
                     style: 'currency', 
                     currency: 'BRL' 
-                  }).format(value)
+                  }).format(value), name]
                 }
-                return value
+                return [value, name]
               }}
             />
-            <Area 
-              type="monotone" 
-              dataKey="value" 
-              stroke={COLORS.primary} 
-              fill={`${COLORS.primary}20`}
-              strokeWidth={2}
-            />
+            <Legend />
+            {/* Suporte para múltiplas áreas */}
+            {data.length > 0 && Object.keys(data[0]).filter(key => key !== 'name').map((key, index) => (
+              <Area 
+                key={key}
+                type="monotone" 
+                dataKey={key} 
+                stroke={CHART_COLORS[index % CHART_COLORS.length]} 
+                fill={`${CHART_COLORS[index % CHART_COLORS.length]}20`}
+                strokeWidth={2}
+                name={key === 'value' ? 'Valor' : key.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+              />
+            ))}
           </AreaChart>
         )
 
