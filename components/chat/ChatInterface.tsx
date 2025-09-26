@@ -3,20 +3,32 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Send, User, Bot, Info } from 'lucide-react'
+import { Send, User, Bot, Info, BarChart3 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { detectChartableContent, extractChartTitle } from '@/lib/chartDetection'
+import { ChartContainer } from '@/components/charts/ChartContainer'
+
+interface ChartData {
+  type: 'line' | 'bar' | 'pie' | 'area'
+  data: any[]
+  title: string
+  description?: string
+}
 
 interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
   timestamp: Date
+  chartable?: boolean
+  chartData?: ChartData
 }
 
 export function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [loadingChart, setLoadingChart] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -91,6 +103,11 @@ export function ChatInterface() {
           input.includes('analis') || input.includes('dados') ||
           input.includes('client') || input.includes('carteira') ||
           input.includes('risco') || input.includes('cobrança')
+      
+      // Step 3: Check for explicit chart requests
+      const explicitChartRequest = input.includes('gráfico') || 
+          input.includes('chart') || input.includes('visualiza') ||
+          input.includes('plota') || input.includes('mostra em gráfico')
 
       if (needsAnalysis) {
         // Map intent to analysis type
@@ -168,14 +185,26 @@ export function ChatInterface() {
 
       const data = await response.json()
 
+      // Detectar se a resposta pode gerar gráfico
+      const chartDetection = detectChartableContent(data.content, currentInput)
+      
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: data.content,
-        timestamp: new Date()
+        timestamp: new Date(),
+        chartable: chartDetection.isChartable || explicitChartRequest,
+        chartData: undefined
       }
 
       setMessages(prev => [...prev, assistantMessage])
+      
+      // Se foi um pedido explícito de gráfico, gerar automaticamente
+      if (explicitChartRequest && chartDetection.chartType) {
+        setTimeout(() => {
+          generateChart(assistantMessage.id, data.content)
+        }, 500) // Pequeno delay para a mensagem aparecer primeiro
+      }
     } catch (error) {
       console.error('Error sending message:', error)
       const errorMessage: Message = {
@@ -194,6 +223,47 @@ export function ChatInterface() {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       handleSubmit(e as any)
+    }
+  }
+
+  const generateChart = async (messageId: string, messageContent: string) => {
+    setLoadingChart(messageId)
+    
+    try {
+      // Detectar novamente para obter o tipo de gráfico
+      const chartDetection = detectChartableContent(messageContent, '')
+      
+      if (!chartDetection.chartType) {
+        throw new Error('Tipo de gráfico não detectado')
+      }
+
+      const response = await fetch('/api/chart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chartType: chartDetection.chartType,
+          query: messageContent
+        })
+      })
+
+      const data = await response.json()
+      
+      if (data.success && data.chartData) {
+        // Atualizar a mensagem com os dados do gráfico
+        setMessages(prev => prev.map(msg => 
+          msg.id === messageId 
+            ? { ...msg, chartData: data.chartData }
+            : msg
+        ))
+      } else {
+        throw new Error(data.error || 'Erro ao gerar gráfico')
+      }
+    } catch (error) {
+      console.error('Erro ao gerar gráfico:', error)
+      // Mostrar erro para o usuário
+      alert('Erro ao gerar gráfico. Tente novamente.')
+    } finally {
+      setLoadingChart(null)
     }
   }
 
@@ -305,6 +375,38 @@ export function ChatInterface() {
                       <div className="whitespace-pre-wrap leading-relaxed font-medium">
                         {message.content}
                       </div>
+                      
+                      {/* Botão para gerar gráfico */}
+                      {message.role === 'assistant' && message.chartable && !message.chartData && (
+                        <div className="mt-4 pt-3 border-t border-neutral-200">
+                          <Button
+                            onClick={() => generateChart(message.id, message.content)}
+                            disabled={loadingChart === message.id}
+                            variant="outline"
+                            size="sm"
+                            className="text-primary-600 border-primary-300 hover:bg-primary-50"
+                          >
+                            {loadingChart === message.id ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mr-2" />
+                                Gerando...
+                              </>
+                            ) : (
+                              <>
+                                <BarChart3 className="w-4 h-4 mr-2" />
+                                📊 Gerar Gráfico
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      )}
+                      
+                      {/* Mostrar gráfico se disponível */}
+                      {message.chartData && (
+                        <div className="mt-4">
+                          <ChartContainer chartData={message.chartData} />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
