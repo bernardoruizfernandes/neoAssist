@@ -160,17 +160,19 @@ export function ChatInterface() {
             }
           } else {
             // Análise padrão para outros tipos
-            const analysisResponse = await fetch('/api/analyze', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ data: {}, analysisType })
-            })
+                      const analysisResponse = await fetch('/api/analyze', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ data: {}, analysisType })
+                      })
+                      
+                      if (!analysisResponse.ok) {
+                        const errorResult = await analysisResponse.json()
+                        throw new Error(`Falha na análise de dados: ${errorResult.error || 'Erro desconhecido'}`)
+                      }
             
-            if (analysisResponse.ok) {
-              const analysisResult = await analysisResponse.json()
-              analysisData = analysisResult.analysis
-            }
-          }
+                      const analysisResult = await analysisResponse.json()
+                      analysisData = analysisResult.analysis          }
         } catch (analysisError) {
           console.error('Analysis error:', analysisError)
         }
